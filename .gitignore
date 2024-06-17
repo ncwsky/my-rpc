@@ -1,0 +1,11 @@
+.idea
+*.log
+*.pid
+.project
+/log
+vendor
+runLock
+conf.local.php
+*.lock
+/run.php
+/demo
