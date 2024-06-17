@@ -1,9 +1,9 @@
 {
-    "name": "myphps/mq-rpc",
+    "name": "myphps/my-rpc",
     "description": "rpc服务(jsonRpc)",
     "license": "MIT",
     "keywords": ["json-rpc"],
-    "homepage": "https://github.com/myphps/mq-rpc",
+    "homepage": "https://github.com/myphps/my-rpc",
     "minimum-stability": "dev",
     "require": {
         "php": ">=7.0",
