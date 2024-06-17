@@ -4,6 +4,7 @@
     "license": "MIT",
     "keywords": ["json-rpc"],
     "homepage": "https://github.com/myphps/my-rpc",
+    "prefer-stable": true,
     "minimum-stability": "dev",
     "require": {
         "php": ">=7.0",
