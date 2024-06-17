@@ -81,13 +81,13 @@ $conf = [
     ],
     'event' => [
         'onWorkerStart' => function ($worker, $worker_id) {
-            $service = new \rpc\JsonRpcService();
+            \rpc\JsonRpcService::init();
         },
         'onConnect' => function ($con, $fd = 0) use ($isSwoole) {
             if (!$isSwoole) {
                 $fd = $con->id;
             }
-            \SrvBase::$isConsole && SrvBase::safeEcho('onConnect '.$fd.PHP_EOL);
+            \SrvBase::$isConsole && SrvBase::safeEcho('onConnect ' . $fd . PHP_EOL);
 
             if (!\rpc\JsonRpcService::auth($con, $fd)) { //启动验证
                 \rpc\JsonRpcService::toClose($con, $fd);
@@ -98,20 +98,14 @@ $conf = [
                 $fd = $con->id;
             }
             \rpc\JsonRpcService::auth($con, $fd, false); //清除验证
-            \SrvBase::$isConsole && SrvBase::safeEcho(date("Y-m-d H:i:s ").microtime(true).' onClose '.$fd.PHP_EOL);
+            \SrvBase::$isConsole && SrvBase::safeEcho(date("Y-m-d H:i:s ") . microtime(true) . ' onClose ' . $fd . PHP_EOL);
         },
         'onReceive' => function (swoole_server $server, int $fd, int $reactor_id, string $data) { //swoole tcp
-            /**
-             * @var \rpc\JsonRpcService $service
-             */
-            $ret = $service->run($data);
-            if($ret!==null) $server->send($fd, toJson($ret));
+            $ret = \rpc\JsonRpcService::run($data);
+            if ($ret !== null) $server->send($fd, toJson($ret));
         },
         'onMessage' => function (\Workerman\Connection\TcpConnection $connection, $data) { //workerman
-            /**
-             * @var \rpc\JsonRpcService $service
-             */
-            $ret = $service->run($data);
+            $ret = \rpc\JsonRpcService::run($data);
             if ($ret !== null) $connection->send(toJson($ret));
         }
     ],

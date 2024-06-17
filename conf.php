@@ -20,8 +20,11 @@ $cfg = [
     'log_level' => 1,
     //'gzip'=>true,
     // ----- rpc start -----
-    'auth_key' => 'yhTM2a#U3Ftj5&ZMid51O2v*zZQxy2cZXD3B', // tcp认证key|http认证Authorization  发送认证 内容:"#"+auth_key
-    'allow_ip' => '', // 允许ip 优先于auth_key
+    'out_protocol' => true,
+    'rpc_log' => false,
+    'rpc_allow' => [], //允许的请求
+    'rpc_auth_key' => 'yhTM2a#U3Ftj5&ZMid51O2v*zZQxy2cZXD3B', // tcp认证key|http认证Authorization  发送认证 内容:"#"+auth_key
+    'rpc_allow_ip' => '', // 允许ip 优先于auth_key
     // ----- rpc end -----
 ];
 if (is_file(__DIR__ . '/conf.local.php')) {

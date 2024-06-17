@@ -10,11 +10,11 @@ class JsonRpcService
 {
     use \MyMsg;
 
-    //标准jsonRpc、普通josnRpc[]
+    //标准jsonRpc、普通jsonRpc[]
     /**
      * @var array 设定允许的操作
      */
-    public $allow = [];
+    public static $allow = [];
 
     //简单认证处理 优先IP认证
     public static $allowIp = '';
@@ -24,14 +24,18 @@ class JsonRpcService
     public static $log = false;
     protected static $instances = [];
 
-    public function __construct()
+    public static function init()
     {
-        Log::Dir('jsonrpc');
+        self::$outProtocol = GetC('out_protocol');
+        self::$log = GetC('rpc_log');
+        self::$authKey = GetC('rpc_auth_key');
+        self::$allowIp = GetC('rpc_allow_ip');
+        self::$allow = GetC('rpc_allow');
     }
 
-    private function _checkAllow($c, $a)
+    private static function _checkAllow($c, $a)
     {
-        return !in_array($c, $this->allow) && !in_array($c . '/' . $a, $this->allow);
+        return !in_array($c, self::$allow) && !in_array($c . '/' . $a, self::$allow);
     }
 
     private static function _error($code, $message, $id = null)
@@ -50,7 +54,7 @@ class JsonRpcService
         return ['result' => $result, 'id' => $id];
     }
 
-    public function run($json)
+    public static function run($json)
     {
         if (self::$log) {
             Log::write($json, 'req');
@@ -62,24 +66,31 @@ class JsonRpcService
         if (!is_array($request) || empty($request)) {
             return self::_error(-32600, 'Invalid Request');
         }
+
+        \set_error_handler(function ($code, $msg, $file, $line) use ($json) {
+            if (!self::$log) Log::write($json, 'req');
+            Log::WARN($file . ':' . $line . ', err:' . $msg);
+        });
         $result = [];
         if (isset($request[0])) { //批量 [{}, ...]
             foreach ($request as $item) {
-                $ret = $this->handle($item);
+                $ret = self::handle($item);
                 if ($ret !== null) { //不是通知
                     $result[] = $ret;
                 }
             }
         } else {
-            $result = $this->handle($request);
+            $result = self::handle($request);
         }
         if (self::$log) {
             Log::write(substr(toJson($result), 0, 1024), 'res');
         }
+        \restore_error_handler();
+
         return $result;
     }
 
-    public function handle(&$request)
+    public static function handle(&$request)
     {
         if (empty($request['method']) || !is_string($request['method'])) {
             return self::_error(-32601, 'Method not found');
