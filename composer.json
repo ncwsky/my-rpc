@@ -1,11 +1,12 @@
 {
     "name": "myphps/my-rpc",
+    "type": "library",
     "description": "rpc服务(jsonRpc)",
     "license": "MIT",
     "keywords": ["json-rpc"],
     "homepage": "https://github.com/myphps/my-rpc",
-    "prefer-stable": true,
     "minimum-stability": "dev",
+    "prefer-stable": true,
     "require": {
         "php": ">=7.0",
         "myphps/my-php-srv": "^3.0"
