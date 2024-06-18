@@ -13,7 +13,7 @@ class JsonRpcClient
 
     public $maxPackageSize = 16777215;
 
-    public $id = 0;
+    public static $id = 0;
     /**
      * @var string|array
      */
@@ -281,8 +281,8 @@ class JsonRpcClient
         ];
         if ($this->_params) $json['params'] = $this->_params;
         if (!$notify) {
-            $this->id++;
-            $json['id'] = $this->id;
+            self::$id++;
+            $json['id'] = self::$id;
         }
         $this->_method = '';
         $this->_params = [];
@@ -298,13 +298,17 @@ class JsonRpcClient
                 try {
                     return $this->sendCommandInternal($json);
                 } catch (\Exception $e) {
-                    Log::trace('retries' . $tries . ', ' . $json['method'] . ', ' . $e->getMessage(), 'Rpc');
-                    // backup retries, fail on commands that fail inside here
-                    $retries = $this->retries;
-                    $this->retries = 0; //防止在close里调用send
-                    $this->close();
-                    $this->open();
-                    $this->retries = $retries;
+                    if ($e->getMessage() == 100) { //Failed to write to socket 重试
+                        Log::trace('retries' . $tries . ', ' . $json['method'] . ', ' . $e->getMessage(), 'Rpc');
+                        // backup retries, fail on commands that fail inside here
+                        $retries = $this->retries;
+                        $this->retries = 0; //防止在close里调用send
+                        $this->close();
+                        $this->open();
+                        $this->retries = $retries;
+                    } else {
+                        throw new \Exception($e->getMessage());
+                    }
                 }
             }
         }
@@ -353,7 +357,7 @@ class JsonRpcClient
             throw new \Exception("Failed to write to socket.\nRpc command was: " . $command, 100);
         }
         if ($written !== ($len = strlen($command))) {
-            throw new \Exception("Failed to write to socket. $written of $len bytes written.\nRpc command was: " . $command);
+            throw new \Exception("Failed to write to socket. $written of $len bytes written.\nRpc command was: " . $command, 100);
         }
         if (!isset($json['id'])) return null; //是通知
         if (($data = fgets($this->_socket, $this->maxPackageSize)) === false) {

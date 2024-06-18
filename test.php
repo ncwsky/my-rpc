@@ -33,10 +33,11 @@ eJson($ret);
 eJson($jsonRpc->call('redis'));
 
 $des = $jsonRpc->instance('\DesSecurity', 'abc');
-eJson($des->encrypt('123456')->send());
+eJson($des->encrypt('123456')->send(true));
 eJson($des->encrypt('789456')->send());
 eJson($des->encrypt('025869')->send());
 
 eJson($jsonRpc->redis('redis2')->get('mod_map')->send());
 eJson($jsonRpc->redis('redis2')->get('mod_map')->send());
-
+eJson($jsonRpc->redis('redis')->get('mod_map')->send());
+eJson($des->encrypt('133333')->send());
