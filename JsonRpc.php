@@ -80,9 +80,6 @@ $conf = [
         /*--- swoole end ---*/
     ],
     'event' => [
-        'onWorkerStart' => function ($worker, $worker_id) {
-            \rpc\JsonRpcService::init();
-        },
         'onConnect' => function ($con, $fd = 0) use ($isSwoole) {
             if (!$isSwoole) {
                 $fd = $con->id;
@@ -112,7 +109,10 @@ $conf = [
     // 进程内加载的文件
     'worker_load' => [
         RUN_DIR . '/conf.php',
-        MY_PHP_DIR . '/base.php'
+        MY_PHP_DIR . '/base.php',
+        function () {
+            \rpc\JsonRpcService::init();
+        }
     ],
 ];
 

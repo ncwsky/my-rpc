@@ -31,6 +31,24 @@ class JsonRpcService
         self::$authKey = GetC('rpc_auth_key');
         self::$allowIp = GetC('rpc_allow_ip');
         self::$allow = GetC('rpc_allow');
+
+        self::load(GetC('rpc_load', []));
+    }
+
+    // 循环load配置文件或匿名函数 ['file1','file2',...,function(){},...] || function(){};
+    public static function load($rpc_load)
+    {
+        foreach ((array)$rpc_load as $load) {
+            if (is_string($load)) {
+                if (is_file($load)) {
+                    include $load;
+                } elseif (is_dir($load)) {
+                    \myphp::class_dir($load);
+                }
+            } elseif ($load instanceof \Closure) {
+                call_user_func($load);
+            }
+        }
     }
 
     private static function _checkAllow($c, $a)

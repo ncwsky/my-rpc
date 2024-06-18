@@ -355,6 +355,7 @@ class JsonRpcClient
         if ($written !== ($len = strlen($command))) {
             throw new \Exception("Failed to write to socket. $written of $len bytes written.\nRpc command was: " . $command);
         }
+        if (!isset($json['id'])) return null; //是通知
         if (($data = fgets($this->_socket, $this->maxPackageSize)) === false) {
             throw new \Exception("Failed to read from socket.\nRpc command was: " . toJson($json));
         }
