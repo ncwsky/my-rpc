@@ -1,17 +1,14 @@
 <?php
-$cfg = array(
-    'redis' => array(
-        'host' => '192.168.0.246',
-        'port' => 6379,
-        'password' => '123456',
-        'select' => 7, //选择库
-        'pconnect'=>true, //长连接
-    ),
-    'log_dir' => __DIR__ . '/log/', //日志记录主目录名称
-    'log_size' => 4194304,// 日志文件大小限制
-    'log_level' => 2,// 日志记录等级
+$cfg = [
     // ----- rpc start -----
-    'auth_key' => '', // tcp认证key  发送认证 内容:"#"+auth_key
-    'allow_ip' => '', // 允许ip 优先于auth_key
+    'out_protocol' => true,
+    'rpc_load' => [], //提供服务的文件、目录、匿名函数|默认是载入了myphp框架
+    'rpc_log' => false,
+    'rpc_allow' => [], //允许的请求
+    'rpc_auth_key' => '', // tcp认证key|http认证Authorization  发送认证 内容:"#"+auth_key
+    'rpc_allow_ip' => '', // 允许ip 优先于auth_key
     // ----- rpc end -----
-);
+];
+if (is_file(__DIR__ . '/conf.local.php')) {
+    $cfg = array_merge($cfg, require(__DIR__ . '/conf.local.php'));
+}

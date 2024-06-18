@@ -132,6 +132,16 @@ class JsonRpcClient
             if ($this->dataTimeout !== null) {
                 stream_set_timeout($this->_socket, $timeout = (int) $this->dataTimeout, (int) (($this->dataTimeout - $timeout) * 1000000));
             }
+            if ($this->password) {
+                $written = @fwrite($this->_socket, $this->password . "\n");
+                if ($written === false) {
+                    throw new \Exception("Failed to write to socket.\nRpc command was: auth");
+                }
+                $data = fgets($this->_socket, $this->maxPackageSize);
+                if ($data) {
+                    throw new \Exception($data);
+                }
+            }
         } else {
             $message = 'Failed to open redis connection.';
             throw new \Exception($message.$errorDescription, $errorNumber);
@@ -352,10 +362,10 @@ class JsonRpcClient
         $written = @fwrite($this->_socket, $command);
         if ($written === false) {
             throw new \Exception("Failed to write to socket.\nRpc command was: " . $command, 100);
-        }
+        }/*
         if ($written !== ($len = strlen($command))) {
             throw new \Exception("Failed to write to socket. $written of $len bytes written.\nRpc command was: " . $command, 100);
-        }
+        }*/
         if (!$multi && !isset($json['id'])) return null; //是通知
         if (($data = fgets($this->_socket, $this->maxPackageSize)) === false) {
             throw new \Exception("Failed to read from socket.\nRpc command was: " . toJson($json));

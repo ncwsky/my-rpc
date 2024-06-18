@@ -72,11 +72,24 @@ class JsonRpcService
         return ['result' => $result, 'id' => $id];
     }
 
-    public static function run($json)
+    public static function run($json, $con=null, $fd=0)
     {
         if (self::$log) {
             Log::write($json, 'req');
         }
+        //认证处理
+        $authRet = self::auth($con, $fd, $json);
+        if (self::$log) {
+            Log::write($authRet, 'auth');
+        }
+        if (false === $authRet) {
+            self::toClose($con, $fd, self::err());
+            return null;
+        }
+        if ($authRet === null) {
+            return null;
+        }
+
         $request = json_decode($json, true);
         if ($request === null) {
             return self::_error(-32700, 'Parse error');
@@ -288,16 +301,16 @@ class JsonRpcService
     }
     /**
      * tcp 认证
-     * @param $con
-     * @param $fd
+     * @param \Workerman\Connection\TcpConnection|\swoole_server $con
+     * @param int $fd
      * @param string $recv
-     * @return bool|string
+     * @return bool|null
      */
-    public static function auth($con, $fd, $recv = null)
+    public static function auth($con, $fd, $recv = '')
     {
         //优先ip
         if (static::$allowIp) {
-            return $recv === false || \myphp\Helper::allowIp(static::remoteIp($con, $fd), static::$allowIp);
+            return $recv === null || \myphp\Helper::allowIp(static::remoteIp($con, $fd), static::$allowIp);
         }
         //认证key
         if (!static::$authKey) return true;
@@ -307,7 +320,7 @@ class JsonRpcService
         }
 
         //连接断开清除
-        if ($recv === false) {
+        if ($recv === null) {
             unset(\SrvBase::$instance->auth[$fd]);
             \SrvBase::$isConsole && \SrvBase::safeEcho('clear auth '.$fd);
             return true;
@@ -321,10 +334,10 @@ class JsonRpcService
             if ($recv == static::$authKey) { //通过认证
                 \SrvBase::$instance->auth[$fd] = true;
             } else {
-                static::err('auth fail');
-                return false;
+                $errJson = \json_encode(self::_error(403, 'auth fail'));
+                return static::err($errJson);
             }
-            return 'ok';
+            return null;
         }
 
         //创建定时认证
