@@ -20,9 +20,10 @@ var_dump($jsonRpc->call('/index/barInfo?bar_id=1'));
 var_dump($jsonRpc->callRaw('/index/netbar', 'id=108&sign=f09568fe32c9f1f79512867c26256b2c'));
 echo toJson($jsonRpc->exec()),PHP_EOL;
 */
-
+eJson($jsonRpc->multi());
 eJson($jsonRpc->call('orderSN', 3, 2));
 eJson($jsonRpc->callRaw('\common\weixin\RedisQRCode.create', [100, ['key'=>bin2hex(random_bytes(6))]]));
+eJson($jsonRpc->exec());
 $ret = $jsonRpc->call('base64_encode', $jsonRpc->sub('\myphp\Helper::rc4',$jsonRpc->sub('urlencode', $jsonRpc->sub('toJson', ['我是外星人'])), '123456'));
 eJson($ret);
 

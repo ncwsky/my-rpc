@@ -253,7 +253,18 @@ class JsonRpcClient
     {
         $this->open();
         $this->_multi = false;
-        return $this->retryOnceSendCommand($this->_multiData);
+        try {
+            return $this->sendCommandInternal($this->_multiData, true);
+        } catch (\Exception $e) {
+            if ($e->getMessage() == 100) { //Failed to write to socket 重试
+                Log::trace('retries:' . $e->getMessage(), 'Rpc');
+                $this->close();
+                $this->open();
+            } else {
+                throw new \Exception($e->getMessage());
+            }
+        }
+        return $this->sendCommandInternal($this->_multiData, true);
     }
 
     /**
@@ -315,29 +326,15 @@ class JsonRpcClient
         return $this->sendCommandInternal($json);
     }
 
-    private function retryOnceSendCommand(&$json)
-    {
-        try {
-            return $this->sendCommandInternal($json);
-        } catch (\Exception $e) {
-            if ($e->getMessage() == 100) { //Failed to write to socket 重试
-                Log::trace('retries:' . $e->getMessage(), 'Rpc');
-                $this->close();
-                $this->open();
-            } else {
-                throw new \Exception($e->getMessage());
-            }
-        }
-        return $this->sendCommandInternal($json);
-    }
     /**
      * Sends RAW command string to the server.
      * @param array $json
+     * @param bool $multi
      * @param bool $response
      * @return array|bool|mixed|null
      * @throws \Exception
      */
-    private function sendCommandInternal(&$json)
+    private function sendCommandInternal(&$json, $multi=false)
     {
         if ($this->_http) {
             $header = array_merge([
@@ -359,7 +356,7 @@ class JsonRpcClient
         if ($written !== ($len = strlen($command))) {
             throw new \Exception("Failed to write to socket. $written of $len bytes written.\nRpc command was: " . $command, 100);
         }
-        if (!isset($json['id'])) return null; //是通知
+        if (!$multi && !isset($json['id'])) return null; //是通知
         if (($data = fgets($this->_socket, $this->maxPackageSize)) === false) {
             throw new \Exception("Failed to read from socket.\nRpc command was: " . toJson($json));
         }
