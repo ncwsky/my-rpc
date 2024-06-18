@@ -11,7 +11,10 @@ function eJson($v){
 $jsonRpc = new \rpc\JsonRpcClient([
     'address'=>['192.168.0.219:7777']
 ]);
-/*
+/* //http模式下使用
+$jsonRpc = new \rpc\JsonRpcClient([
+    'address'=>['http://192.168.0.219:8049/json-rpc']
+]);
 var_dump($jsonRpc->multi());
 var_dump($jsonRpc->call('/index/time'));
 var_dump($jsonRpc->notify('/index/time'));
