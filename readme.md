@@ -14,3 +14,5 @@ RPC(json)服务
     修改 run.php conf.php配置
     运行 ./run.php 
     
+###其他
+    app/control/JsonRpcAct.php 为myphp框架http请求示例
