@@ -80,7 +80,7 @@ class JsonRpcService
         //认证处理
         $authRet = self::auth($con, $fd, $json);
         if (self::$log) {
-            Log::write($authRet, 'auth');
+            Log::write($authRet, 'srv-auth');
         }
         if (false === $authRet) {
             self::toClose($con, $fd, self::err());
@@ -334,7 +334,7 @@ class JsonRpcService
             if ($recv == static::$authKey) { //通过认证
                 \SrvBase::$instance->auth[$fd] = true;
             } else {
-                $errJson = \json_encode(self::_error(403, 'auth fail'));
+                $errJson = \json_encode(self::_error(-32403, 'auth fail'));
                 return static::err($errJson);
             }
             return null;

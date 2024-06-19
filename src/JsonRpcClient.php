@@ -370,7 +370,11 @@ class JsonRpcClient
         if (($data = fgets($this->_socket, $this->maxPackageSize)) === false) {
             throw new \Exception("Failed to read from socket.\nRpc command was: " . toJson($json));
         }
-        return \json_decode($data, true);
+        $jsonRet = \json_decode($data, true);
+        if (isset($jsonRet['error']) && $jsonRet['error']['code'] == -32403) {
+            throw new \Exception(rtrim($data));
+        }
+        return $jsonRet;
 
         $ret = \json_decode($data, true);
         if (isset($ret[0])) { //批量
