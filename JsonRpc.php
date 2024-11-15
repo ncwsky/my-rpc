@@ -66,10 +66,10 @@ $conf = [
     'type' => 'tcp',
     'setting' => [ //swooleSrv有兼容处理
         'count' => 1, //单进程模式
-        /*--- swoole ---*/
+        /*--- workerman ---*/
         'protocol' => '\\Workerman\\Protocols\\Text',
         'stdoutFile' => RUN_DIR . '/log.log', //终端输出 workerman
-        /*--- swoole end ---*/
+        /*--- workerman end ---*/
         'pidFile' => RUN_DIR . '/mq.pid',  //pid_file
         'logFile' => RUN_DIR . '/log.log', //日志文件 log_file
         /*--- swoole ---*/
