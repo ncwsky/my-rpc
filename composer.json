@@ -15,5 +15,8 @@
         "psr-4": {
             "rpc\\": "./src"
         }
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.11"
     }
 }

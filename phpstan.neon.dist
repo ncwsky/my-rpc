@@ -1,0 +1,14 @@
+parameters:
+    level: 5
+    treatPhpDocTypesAsCertain: false
+    paths:
+        - .
+    bootstrapFiles:
+        - vendor/myphps/myphp/GetOpt.php
+        - vendor/myphps/myphp/base.php
+    excludePaths:
+        - vendor
+        - test.php
+        - conf.local.php
+    ignoreErrors:
+        - '#Right side of \|\| is always false.#'

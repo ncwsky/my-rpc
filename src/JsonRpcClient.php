@@ -72,7 +72,7 @@ class JsonRpcClient
     /**
      * @var resource redis socket connection
      */
-    private $_socket = false;
+    private $_socket;
     private $_method = '';
     private $_params = [];
     private $_fluent = [];
@@ -95,7 +95,7 @@ class JsonRpcClient
             }
         }
         if (!$this->timeout) {
-            $this->timeout = ini_get('default_socket_timeout');
+            $this->timeout = (float)ini_get('default_socket_timeout');
         }
     }
 
@@ -122,10 +122,12 @@ class JsonRpcClient
         if ($this->_http) {
             return;
         }
-        if ($this->_socket !== false) {
+        if (is_resource($this->_socket)) {
             return;
         }
-        set_error_handler(function () {});
+        set_error_handler(function () {
+            return true;
+        });
         $this->_socket = @stream_socket_client(
             'tcp://' . $this->_address,
             $errorNumber,
@@ -160,10 +162,9 @@ class JsonRpcClient
      */
     public function close()
     {
-        if ($this->_socket !== false) {
+        if (is_resource($this->_socket)) {
             Log::trace('Closing RPC connection: ' . $this->_address, __METHOD__);
             fclose($this->_socket);
-            $this->_socket = false;
         }
     }
 
@@ -348,18 +349,17 @@ class JsonRpcClient
      * Sends RAW command string to the server.
      * @param array $json
      * @param bool $multi
-     * @param bool $response
      * @return array|bool|mixed|null
      * @throws \Exception
      */
-    private function sendCommandInternal(&$json, $multi = false)
+    private function sendCommandInternal(array &$json, bool $multi = false)
     {
         if ($this->_http) {
             $header = array_merge([
                 'Authorization' => $this->password,
                 'Content-Type' => 'application/json'
             ], $this->header);
-            $data = \Http::curlSend($this->_address, 'POST', toJson($json), $this->timeout, $header);
+            $data = \Http::curlSend($this->_address, 'POST', toJson($json), (int)$this->timeout, $header);
             if ($data === false) {
                 return self::errNil(\Http::$curlErr ?: '请求失败');
             }
@@ -385,7 +385,7 @@ class JsonRpcClient
             throw new \Exception(rtrim($data));
         }
         return $jsonRet;
-
+        /*
         $ret = \json_decode($data, true);
         if (isset($ret[0])) { //批量
             return $ret;
@@ -403,6 +403,6 @@ class JsonRpcClient
             }
         } else { //{code:int,msg:string,data:mixed}
             return $ret;
-        }
+        }*/
     }
 }

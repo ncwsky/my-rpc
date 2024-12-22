@@ -53,7 +53,7 @@ class JsonRpcService
         }
     }
 
-    private static function _checkAllow($c, $a)
+    public static function checkAllow($c, $a)
     {
         return !in_array($c, self::$allow) && !in_array($c . '/' . $a, self::$allow);
     }
@@ -100,11 +100,12 @@ class JsonRpcService
             return self::_error(-32600, 'Invalid Request');
         }
 
-        \set_error_handler(function ($code, $msg, $file, $line) use ($json) {
+        set_error_handler(function ($code, $msg, $file, $line) use ($json) {
             if (!self::$log) {
                 Log::write($json, 'req');
             }
             Log::WARN($file . ':' . $line . ', err:' . $msg);
+            return true;
         });
         $result = [];
         if (isset($request[0])) { //批量 [{}, ...]
@@ -316,12 +317,12 @@ class JsonRpcService
     }
     /**
      * tcp 认证
-     * @param \Workerman\Connection\TcpConnection|\swoole_server $con
+     * @param \Workerman\Connection\TcpConnection|\Swoole\Server $con
      * @param int $fd
-     * @param string $recv
+     * @param string|null $recv
      * @return bool|null
      */
-    public static function auth($con, $fd, $recv = '')
+    public static function auth($con, $fd, ?string $recv = '')
     {
         //优先ip
         if (static::$allowIp) {
@@ -373,7 +374,7 @@ class JsonRpcService
         return true;
     }
     /**
-     * @param \Workerman\Connection\TcpConnection|\swoole_server $con
+     * @param \Workerman\Connection\TcpConnection|\Swoole\Server $con
      * @param int $fd
      * @param string $msg
      */

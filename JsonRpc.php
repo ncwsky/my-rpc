@@ -99,7 +99,7 @@ $conf = [
             \rpc\JsonRpcService::auth($con, $fd, null); //清除验证
             \SrvBase::$isConsole && SrvBase::safeEcho(date("Y-m-d H:i:s ") . microtime(true) . ' onClose ' . $fd . PHP_EOL);
         },
-        'onReceive' => function (swoole_server $server, int $fd, int $reactor_id, string $data) { //swoole tcp
+        'onReceive' => function (\Swoole\Server $server, int $fd, int $reactor_id, string $data) { //swoole tcp
             $ret = \rpc\JsonRpcService::run($data, $server, $fd);
             if ($ret !== null) {
                 $server->send($fd, toJson($ret));
@@ -128,6 +128,6 @@ if ($isSwoole) {
     // 设置每个连接接收的数据包最大为64K
     \Workerman\Connection\TcpConnection::$defaultMaxPackageSize = MAX_INPUT_SIZE;
     $srv = new WorkerManSrv($conf);
-    Worker2::$stopTimeout = STOP_TIMEOUT; //强制进程结束等待时间
+    \Workerman\Worker::$stopTimeout = STOP_TIMEOUT; //强制进程结束等待时间
 }
 $srv->run($argv);
