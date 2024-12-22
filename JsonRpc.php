@@ -1,5 +1,7 @@
 #!/usr/bin/env php
 <?php
+
+declare(strict_types=1);
 error_reporting(E_ALL);
 ini_set('display_errors', 'On');// 有些环境关闭了错误显示
 
@@ -54,7 +56,7 @@ if (GetOpt::has('h', 'help')) {
    -s --swoole    swolle运行', PHP_EOL;
     exit(0);
 }
-if(!is_file(RUN_DIR . '/conf.php')){
+if (!is_file(RUN_DIR . '/conf.php')) {
     echo RUN_DIR . '/conf.php does not exist';
     exit(0);
 }
@@ -86,7 +88,7 @@ $conf = [
             }
             \SrvBase::$isConsole && SrvBase::safeEcho('onConnect ' . $fd . PHP_EOL);
 
-            if (false===\rpc\JsonRpcService::auth($con, $fd)) { //启动验证
+            if (false === \rpc\JsonRpcService::auth($con, $fd)) { //启动验证
                 \rpc\JsonRpcService::toClose($con, $fd);
             }
         },
@@ -99,11 +101,15 @@ $conf = [
         },
         'onReceive' => function (swoole_server $server, int $fd, int $reactor_id, string $data) { //swoole tcp
             $ret = \rpc\JsonRpcService::run($data, $server, $fd);
-            if ($ret !== null) $server->send($fd, toJson($ret));
+            if ($ret !== null) {
+                $server->send($fd, toJson($ret));
+            }
         },
         'onMessage' => function (\Workerman\Connection\TcpConnection $connection, $data) { //workerman
             $ret = \rpc\JsonRpcService::run($data, $connection, $connection->id);
-            if ($ret !== null) $connection->send(toJson($ret));
+            if ($ret !== null) {
+                $connection->send(toJson($ret));
+            }
         }
     ],
     // 进程内加载的文件

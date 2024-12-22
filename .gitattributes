@@ -1,0 +1,4 @@
+# Ignore all tests, documentation and dot files for archive
+/.gitattributes    export-ignore
+/.php-cs-fixer.dist.php          export-ignore
+/phpstan.neon.dist          export-ignore

@@ -1,15 +1,17 @@
 <?php
+
+declare(strict_types=1);
 require __DIR__ . "/vendor/autoload.php";
 require __DIR__ . "/conf.php";
 require __DIR__ . "/vendor/myphps/myphp/base.php";
 
-
-function eJson($v){
+function eJson($v)
+{
     echo toJson($v),PHP_EOL;
 }
 
 $jsonRpc = new \rpc\JsonRpcClient([
-    'address'=>['192.168.0.219:7777'],
+    'address' => ['192.168.0.219:7777'],
     #'password'=>'1234'
 ]);
 /* //http模式下使用
@@ -26,12 +28,12 @@ echo toJson($jsonRpc->exec()),PHP_EOL;
 */
 eJson($jsonRpc->multi());
 eJson($jsonRpc->call('orderSN', 3, 2));
-eJson($jsonRpc->callRaw('\common\weixin\RedisQRCode.create', [100, ['key'=>bin2hex(random_bytes(6))]]));
+eJson($jsonRpc->callRaw('\common\weixin\RedisQRCode.create', [100, ['key' => bin2hex(random_bytes(6))]]));
 eJson($jsonRpc->exec());
-$ret = $jsonRpc->call('base64_encode', $jsonRpc->sub('\myphp\Helper::rc4',$jsonRpc->sub('urlencode', $jsonRpc->sub('toJson', ['我是外星人'])), '123456'));
+$ret = $jsonRpc->call('base64_encode', $jsonRpc->sub('\myphp\Helper::rc4', $jsonRpc->sub('urlencode', $jsonRpc->sub('toJson', ['我是外星人'])), '123456'));
 eJson($ret);
 
-$ret = $jsonRpc->call('json_decode',$jsonRpc->sub('urldecode',$jsonRpc->sub('\myphp\Helper::rc4', $jsonRpc->sub('base64_decode',$ret['result']), '123456')));
+$ret = $jsonRpc->call('json_decode', $jsonRpc->sub('urldecode', $jsonRpc->sub('\myphp\Helper::rc4', $jsonRpc->sub('base64_decode', $ret['result']), '123456')));
 eJson($ret);
 
 #var_dump($jsonRpc->call('\myphp\Helper::rc4',[$ret['result'], '123456']));

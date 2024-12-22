@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace rpc;
 
 use myphp\Log;
@@ -84,7 +87,6 @@ class JsonRpcClient
      */
     private $_new = [];
 
-
     public function __construct($config = [])
     {
         if (!empty($config)) {
@@ -92,7 +94,9 @@ class JsonRpcClient
                 $this->$name = $value;
             }
         }
-        if (!$this->timeout) $this->timeout = ini_get('default_socket_timeout');
+        if (!$this->timeout) {
+            $this->timeout = ini_get('default_socket_timeout');
+        }
     }
 
     /**
@@ -115,11 +119,13 @@ class JsonRpcClient
             }
         }
 
-        if ($this->_http) return;
+        if ($this->_http) {
+            return;
+        }
         if ($this->_socket !== false) {
             return;
         }
-        set_error_handler(function(){});
+        set_error_handler(function () {});
         $this->_socket = @stream_socket_client(
             'tcp://' . $this->_address,
             $errorNumber,
@@ -282,7 +288,7 @@ class JsonRpcClient
      * @return array|bool|mixed|null
      * @throws \Exception
      */
-    public function send($notify=false)
+    public function send($notify = false)
     {
         $this->open();
         if ($this->_fluent) { //连贯处理
@@ -300,7 +306,9 @@ class JsonRpcClient
             'jsonrpc' => '2.0',
             'method' => $this->_method
         ];
-        if ($this->_params) $json['params'] = $this->_params;
+        if ($this->_params) {
+            $json['params'] = $this->_params;
+        }
         if (!$notify) {
             self::$id++;
             $json['id'] = self::$id;
@@ -344,7 +352,7 @@ class JsonRpcClient
      * @return array|bool|mixed|null
      * @throws \Exception
      */
-    private function sendCommandInternal(&$json, $multi=false)
+    private function sendCommandInternal(&$json, $multi = false)
     {
         if ($this->_http) {
             $header = array_merge([
@@ -366,7 +374,9 @@ class JsonRpcClient
         if ($written !== ($len = strlen($command))) {
             throw new \Exception("Failed to write to socket. $written of $len bytes written.\nRpc command was: " . $command, 100);
         }*/
-        if (!$multi && !isset($json['id'])) return null; //是通知
+        if (!$multi && !isset($json['id'])) { //是通知
+            return null;
+        }
         if (($data = fgets($this->_socket, $this->maxPackageSize)) === false) {
             throw new \Exception("Failed to read from socket.\nRpc command was: " . toJson($json));
         }
@@ -384,7 +394,9 @@ class JsonRpcClient
             if (!empty($ret['error'])) {
                 //兼容处理
                 $ret['msg'] = $ret['message'];
-                $ret['data'] = $ret['data'] ?? null;
+                if (!isset($ret['data'])) {
+                    $ret['data'] = null;
+                }
                 return $ret['error']; // {code,message,data}
             } else {
                 return $ret['result']; // mixed|{code:int,msg:string,data:mixed}

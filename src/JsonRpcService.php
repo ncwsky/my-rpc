@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace rpc;
 
 use myphp\Helper;
@@ -72,7 +74,7 @@ class JsonRpcService
         return ['result' => $result, 'id' => $id];
     }
 
-    public static function run($json, $con=null, $fd=0)
+    public static function run($json, $con = null, $fd = 0)
     {
         if (self::$log) {
             Log::write($json, 'req');
@@ -99,7 +101,9 @@ class JsonRpcService
         }
 
         \set_error_handler(function ($code, $msg, $file, $line) use ($json) {
-            if (!self::$log) Log::write($json, 'req');
+            if (!self::$log) {
+                Log::write($json, 'req');
+            }
             Log::WARN($file . ':' . $line . ', err:' . $msg);
         });
         $result = [];
@@ -145,7 +149,7 @@ class JsonRpcService
     {
         $_env = \myphp::$env;
         #$_SERVER['SCRIPT_NAME'] = '/index.php';
-        $_SERVER['PHP_SELF'] = (string)\parse_url($request['method'], PHP_URL_PATH);;
+        $_SERVER['PHP_SELF'] = (string)\parse_url($request['method'], PHP_URL_PATH);
         $_SERVER["REQUEST_URI"] = $request['method'];
         $_SERVER['QUERY_STRING'] = (string)\parse_url($request['method'], PHP_URL_QUERY);
         $_GET = [];
@@ -204,7 +208,9 @@ class JsonRpcService
                 //对参数里有函数调用递归处理
                 $params = self::paramsRecursive((array)$item[$method]);
 
-                if (isset($carry)) return call_user_func_array([$carry, $method], $params);
+                if (isset($carry)) {
+                    return call_user_func_array([$carry, $method], $params);
+                }
 
                 //连贯开始部分
                 if (substr($method, 0, 1) == '&') { //是创建新实例
@@ -228,7 +234,7 @@ class JsonRpcService
                 return call_user_func_array($method, $params);
             });
         } elseif (strpos($request['method'], '.')) { //对象.方法
-            list($className, $method) = explode('.', $request['method'], 2);
+            [$className, $method] = explode('.', $request['method'], 2);
             $key = $className;
             //对新实例缓存
             if (!isset(self::$instances[$key])) {
@@ -242,7 +248,7 @@ class JsonRpcService
             }
             $result = call_user_func_array([self::$instances[$key], $method], self::paramsRecursive($request['params']));
         } elseif (strpos($request['method'], '::')) {//对象::静态方法
-            list($className, $method) = explode('::', $request['method'], 2);
+            [$className, $method] = explode('::', $request['method'], 2);
             if (!class_exists($className)) {
                 throw new \Exception('Class not found', -32601);
             }
@@ -267,11 +273,15 @@ class JsonRpcService
      */
     public static function paramsRecursive($params)
     {
-        if (!$params) return $params;
+        if (!$params) {
+            return $params;
+        }
         foreach ($params as $key => $param) {
             if (is_array($param)) {
                 $name = key($param);
-                if (is_int($name)) continue;
+                if (is_int($name)) {
+                    continue;
+                }
                 if (substr($name, 0, 1) == '@') { //调用函数处理
                     //todo 使用直接调用方式流程
                     $request = ['method' => substr($name, 1), 'params' => self::paramsRecursive($param[$name])];
@@ -285,18 +295,23 @@ class JsonRpcService
 
     public static function remoteIp($con, $fd)
     {
-        if (\SrvBase::$instance->isWorkerMan) return $con->getRemoteIp();
+        if (\SrvBase::$instance->isWorkerMan) {
+            return $con->getRemoteIp();
+        }
 
         return $con->getClientInfo($fd)['remote_ip'];
     }
 
-    public static function authHttp(){
+    public static function authHttp()
+    {
         //优先ip
         if (static::$allowIp) {
             return \myphp\Helper::allowIp(Helper::getIp(), static::$allowIp);
         }
         //认证key
-        if (!static::$authKey) return true;
+        if (!static::$authKey) {
+            return true;
+        }
         return static::$authKey == \myphp::req()->getHeader('Authorization');
     }
     /**
@@ -313,7 +328,9 @@ class JsonRpcService
             return $recv === null || \myphp\Helper::allowIp(static::remoteIp($con, $fd), static::$allowIp);
         }
         //认证key
-        if (!static::$authKey) return true;
+        if (!static::$authKey) {
+            return true;
+        }
 
         if (!isset(\SrvBase::$instance->auth)) {
             \SrvBase::$instance->auth = [];
@@ -341,7 +358,7 @@ class JsonRpcService
         }
 
         //创建定时认证
-        if(!isset(\SrvBase::$instance->auth[$fd])){
+        if (!isset(\SrvBase::$instance->auth[$fd])) {
             \SrvBase::$isConsole && \SrvBase::safeEcho('auth timer ' . $fd . PHP_EOL);
             \SrvBase::$instance->auth[$fd] = \SrvBase::$instance->server->after(1000, function () use ($con, $fd) {
                 unset(\SrvBase::$instance->auth[$fd]);
@@ -360,11 +377,14 @@ class JsonRpcService
      * @param int $fd
      * @param string $msg
      */
-    public static function toClose($con, $fd=0, $msg=null){
+    public static function toClose($con, $fd = 0, $msg = null)
+    {
         if (\SrvBase::$instance->isWorkerMan) {
             $con->close($msg);
         } else {
-            if ($msg) $con->send($fd, $msg);
+            if ($msg) {
+                $con->send($fd, $msg);
+            }
             $con->close($fd);
         }
     }

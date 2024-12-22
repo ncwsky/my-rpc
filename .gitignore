@@ -9,3 +9,4 @@ conf.local.php
 *.lock
 /run.php
 /demo
+/*.cache
