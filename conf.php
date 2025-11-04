@@ -1,7 +1,7 @@
 <?php
 $cfg = [
     // ----- rpc start -----
-    'out_protocol' => true,
+    'out_protocol' => true, //是否输出协议标识
     'rpc_load' => [], //提供服务的文件、目录、匿名函数|默认是载入了myphp框架
     'rpc_log' => false,
     'rpc_allow' => [], //允许的请求
