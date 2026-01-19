@@ -63,7 +63,14 @@ class JsonRpcService
         return !in_array($c, self::$allow) && !in_array($c . '/' . $a, self::$allow);
     }
 
-    private static function _error(int $code, string $message, $id = null): array
+    /**
+     * 失败返回
+     * @param int $code
+     * @param string $message
+     * @param $id
+     * @return array
+     */
+    public static function error(int $code, string $message, $id = null): array
     {
         if (self::$outProtocol) {
             return ['jsonrpc' => '2.0', 'error' => ['code' => $code, 'message' => $message], 'id' => $id];
@@ -71,7 +78,13 @@ class JsonRpcService
         return ['error' => ['code' => $code, 'message' => $message], 'id' => $id];
     }
 
-    private static function _result(&$result, $id): array
+    /**
+     * 成功返回
+     * @param mixed $result
+     * @param $id
+     * @return array
+     */
+    public static function result(&$result, $id): array
     {
         if (self::$outProtocol) {
             return ['jsonrpc' => '2.0', 'result' => $result, 'id' => $id];
@@ -101,10 +114,10 @@ class JsonRpcService
 
         $request = json_decode($json, true);
         if ($request === null) {
-            return self::_error(-32700, 'Parse error');
+            return self::error(-32700, 'Parse error');
         }
         if (!is_array($request) || empty($request)) {
-            return self::_error(-32600, 'Invalid Request');
+            return self::error(-32600, 'Invalid Request');
         }
 
         set_error_handler(function ($code, $msg, $file, $line) use ($json) {
@@ -136,19 +149,19 @@ class JsonRpcService
     public static function handle(array &$request): ?array
     {
         if (empty($request['method']) || !is_string($request['method'])) {
-            return self::_error(-32601, 'Method not found');
+            return self::error(-32601, 'Method not found');
         }
 
         try {
             $result = $request['method'][0] == '/' ? self::url($request) : self::call($request);
         } catch (\Exception $e) {
-            return self::_error($e->getCode() ?: -32603, $e->getMessage(), $request['id'] ?? null);
+            return self::error($e->getCode() ?: -32603, $e->getMessage(), $request['id'] ?? null);
         } catch (\Error $e) {
-            return self::_error(-32603, 'Internal error: ' . $e->getMessage(), $request['id'] ?? null);
+            return self::error(-32603, 'Internal error: ' . $e->getMessage(), $request['id'] ?? null);
         }
 
         if (isset($request['id'])) {
-            return self::_result($result, $request['id']);
+            return self::result($result, $request['id']);
         }
         return null;
     }
@@ -356,7 +369,7 @@ class JsonRpcService
             if ($recv == static::$authKey) { //通过认证
                 self::$auth[$fd] = true;
             } else {
-                $errJson = \json_encode(self::_error(-32403, 'auth fail'));
+                $errJson = \json_encode(self::error(-32403, 'auth fail'));
                 return static::err($errJson);
             }
             return null;
