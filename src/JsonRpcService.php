@@ -84,17 +84,19 @@ class JsonRpcService
         if (self::$log) {
             Log::write($json, 'req');
         }
-        //认证处理
-        $authRet = self::auth($con, $fd, $json);
-        if (self::$log) {
-            Log::write($authRet, 'srv-auth');
-        }
-        if (false === $authRet) {
-            self::toClose($con, $fd, self::err());
-            return null;
-        }
-        if ($authRet === null) {
-            return null;
+        if ($con !== null) { //http模式时为null
+            //认证处理
+            $authRet = self::auth($con, $fd, $json);
+            if (self::$log) {
+                Log::write($authRet, 'srv-auth');
+            }
+            if (false === $authRet) {
+                self::toClose($con, $fd, self::err());
+                return null;
+            }
+            if ($authRet === null) {
+                return null;
+            }
         }
 
         $request = json_decode($json, true);
