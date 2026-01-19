@@ -26,7 +26,7 @@ class JsonRpcClient
     /**
      * @var string 授权密码
      */
-    public $password;
+    public $auth_key;
     /**
      * @var array http请求时使用 [name=>value, ...]
      */
@@ -122,8 +122,8 @@ class JsonRpcClient
                 $microseconds = (int) (($this->dataTimeout - $timeout) * 1000000); //微秒部分
                 stream_set_timeout($this->_socket, $timeout, $microseconds);
             }
-            if ($this->password) {
-                $written = @fwrite($this->_socket, $this->password . "\n");
+            if ($this->auth_key) {
+                $written = @fwrite($this->_socket, $this->auth_key . "\n");
                 if ($written === false) {
                     throw new \Exception("Failed to write to socket.\nRpc command was: auth");
                 }
@@ -359,7 +359,7 @@ class JsonRpcClient
     {
         if ($this->_http) {
             $header = array_merge([
-                'Authorization' => $this->password,
+                'Authorization' => $this->auth_key,
                 'Content-Type' => 'application/json'
             ], $this->header);
             $data = \Http::curlSend($this->_address, 'POST', toJson($json), (int)$this->timeout, $header);
