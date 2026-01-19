@@ -7,14 +7,13 @@ namespace rpc;
 use myphp\Log;
 
 /**
- * Class JsonRpcClient
- * @package common\JsonRpc
+ * JsonRpcClient todo 异步调用
  */
 class JsonRpcClient
 {
     use \MyMsg;
 
-    public $maxPackageSize = 16777215;
+    public $maxPackageSize = 16777215; //16M
 
     public static $id = 0;
     /**
@@ -350,7 +349,7 @@ class JsonRpcClient
     }
 
     /**
-     * Sends RAW command string to the server.
+     * 发送原始json数据到服务端
      * @param array $json
      * @param bool $multi
      * @return array|bool|mixed|null
