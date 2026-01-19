@@ -24,7 +24,7 @@ class JsonRpcClient
     private $_http = false;
 
     /**
-     * @var string 授权密码
+     * @var string 授权key 如果服务端有配置IP验证时此key无效
      */
     public $auth_key;
     /**
