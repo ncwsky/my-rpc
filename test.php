@@ -11,8 +11,8 @@ function eJson($v)
 }
 
 $jsonRpc = new \rpc\JsonRpcClient([
-    'address' => ['192.168.0.219:7777'],
-    #'password'=>'1234'
+    'address' => ['10.0.0.219:7777'],
+    'password'=>'123456'
 ]);
 /* //http模式下使用
 $jsonRpc = new \rpc\JsonRpcClient([

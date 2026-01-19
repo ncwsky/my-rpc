@@ -34,43 +34,24 @@ class JsonRpcClient
     public $header = [];
 
     /**
-     * @var float timeout to use for connection to redis. If not set the timeout set in php.ini will be used: `ini_get("default_socket_timeout")`.
+     * @var float 连接超时 未设置使用: `ini_get("default_socket_timeout")`.
      */
     public $timeout = null;
     /**
-     * @var float timeout to use for redis socket when reading and writing data. If not set the php default value will be used.
+     * @var float 数据超时
      */
     public $dataTimeout = null;
     /**
-     * @var integer Bitmask field which may be set to any combination of connection flags passed to [stream_socket_client()](http://php.net/manual/en/function.stream-socket-client.php).
-     * Currently the select of connection flags is limited to `STREAM_CLIENT_CONNECT` (default), `STREAM_CLIENT_ASYNC_CONNECT` and `STREAM_CLIENT_PERSISTENT`.
-     *
-     * > Warning: `STREAM_CLIENT_PERSISTENT` will make PHP reuse connections to the same server. If you are using multiple
-     * > connection objects to refer to different redis [[$database|databases]] on the same [[port]], redis commands may
-     * > get executed on the wrong database. `STREAM_CLIENT_PERSISTENT` is only safe to use if you use only one database.
-     * >
-     * > You may still use persistent connections in this case when disambiguating ports as described
-     * > in [a comment on the PHP manual](http://php.net/manual/en/function.stream-socket-client.php#105393)
-     * > e.g. on the connection used for session storage, specify the port as:
-     * >
-     * > ```php
-     * > 'port' => '6379/session'
-     * > ```
-     *
-     * @see http://php.net/manual/en/function.stream-socket-client.php
-     * @since 2.0.5
+     * @var int 连接标识
      */
     public $socketClientFlags = STREAM_CLIENT_CONNECT;
     /**
-     * @var integer The number of times a command execution should be retried when a connection failure occurs.
-     * This is used in [[executeCommand()]] when a [[Exception]] is thrown.
-     * Defaults to 0 meaning no retries on failure.
-     * @since 2.0.7
+     * @var int 失败重试次数 默认0不重试
      */
     public $retries = 0;
 
     /**
-     * @var resource redis socket connection
+     * @var resource rpc connection
      */
     private $_socket;
     private $_method = '';
@@ -87,7 +68,7 @@ class JsonRpcClient
      */
     private $_new = [];
 
-    public function __construct($config = [])
+    public function __construct(array $config = [])
     {
         if (!empty($config)) {
             foreach ($config as $name => $value) {
@@ -100,9 +81,9 @@ class JsonRpcClient
     }
 
     /**
-     * Establishes a DB connection.
-     * It does nothing if a DB connection has already been established.
-     * @throws \Exception if connection fails
+     * 打开连接
+     * @return void
+     * @throws \Exception
      */
     public function open()
     {
@@ -138,7 +119,9 @@ class JsonRpcClient
         restore_error_handler();
         if ($this->_socket) {
             if ($this->dataTimeout !== null) {
-                stream_set_timeout($this->_socket, $timeout = (int) $this->dataTimeout, (int) (($this->dataTimeout - $timeout) * 1000000));
+                $timeout = (int)$this->dataTimeout; //秒部分
+                $microseconds = (int) (($this->dataTimeout - $timeout) * 1000000); //微秒部分
+                stream_set_timeout($this->_socket, $timeout, $microseconds);
             }
             if ($this->password) {
                 $written = @fwrite($this->_socket, $this->password . "\n");
@@ -157,8 +140,8 @@ class JsonRpcClient
     }
 
     /**
-     * Closes the currently active DB connection.
-     * It does nothing if the connection is already closed.
+     * 关闭连接
+     * @return void
      */
     public function close()
     {
@@ -175,7 +158,7 @@ class JsonRpcClient
      * @return array|bool|mixed|null
      * @throws \Exception
      */
-    public function __call($name, $params)
+    public function __call(string $name, array $params)
     {
         $this->_fluent[] = [$name => $params];
         return $this;
@@ -190,12 +173,12 @@ class JsonRpcClient
     }
 
     /**
-     * 连贯操作初始实例
+     * 类初始实例
      * @param string $class
      * @param mixed ...$params
-     * @return $this|JsonRpcClient
+     * @return JsonRpcClient
      */
-    public function instance($class, ...$params)
+    public function instance(string $class, ...$params): JsonRpcClient
     {
         $instance = clone $this;
         $instance->_new = ['&' . $class => $params];
@@ -203,20 +186,25 @@ class JsonRpcClient
         return $instance;
     }
 
-    //参数里使用函数
-    public function sub($name, ...$params)
+    /**
+     * 调用(call)里的参数使用函数
+     * @param string $name
+     * @param ...$params
+     * @return array[]
+     */
+    public function sub(string $name, ...$params)
     {
         return ['@'.$name => $params];
     }
 
     /**
-     * 通知
+     * 通知（无id字段）用于不关心结果的场景，例如日志记录等
      * @param string $name
      * @param mixed ...$params
      * @return array|bool|mixed|null
      * @throws \Exception
      */
-    public function notify($name, ...$params)
+    public function notify(string $name, ...$params)
     {
         $this->_method = $name;
         $this->_params = $params;
@@ -224,20 +212,27 @@ class JsonRpcClient
     }
 
     /**
-     * 调用
+     * 调用-可变数量的参数
      * @param string $name 以 /xx/xx?xx=s 类似开头的表示http请求
      * @param mixed ...$params
      * @return array|bool|mixed|null
      * @throws \Exception
      */
-    public function call($name, ...$params)
+    public function call(string $name, ...$params)
     {
         $this->_method = $name;
         $this->_params = $params;
         return $this->send();
     }
 
-    public function callRaw($name, $params)
+    /**
+     * 调用-区别call参数只有一项，多个参数以数组传入
+     * @param string $name
+     * @param mixed $params
+     * @return array|bool|mixed|null
+     * @throws \Exception
+     */
+    public function callRaw(string $name, $params)
     {
         $this->_method = $name;
         $this->_params = $params;
@@ -250,7 +245,7 @@ class JsonRpcClient
      * @return array|bool|mixed|null
      * @throws \Exception
      */
-    public function batch($methods)
+    public function batch(array $methods)
     {
         $this->multi();
         foreach ($methods as $method) {
@@ -259,6 +254,10 @@ class JsonRpcClient
         return $this->exec();
     }
 
+    /**
+     * 批量-初始
+     * @return null
+     */
     public function multi()
     {
         $this->_multi = true;
@@ -266,6 +265,11 @@ class JsonRpcClient
         return null;
     }
 
+    /**
+     * 批量-执行
+     * @return array|bool|mixed|null
+     * @throws \Exception
+     */
     public function exec()
     {
         $this->open();
@@ -285,11 +289,11 @@ class JsonRpcClient
     }
 
     /**
-     * @param bool $notify
+     * @param bool $notify 是否仅通知不回数据
      * @return array|bool|mixed|null
      * @throws \Exception
      */
-    public function send($notify = false)
+    public function send(bool $notify = false)
     {
         $this->open();
         if ($this->_fluent) { //连贯处理

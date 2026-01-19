@@ -21,6 +21,7 @@ class JsonRpcService
     //简单认证处理 优先IP认证
     public static $allowIp = '';
     public static $authKey = ''; //简单密码验证
+    public static $auth = []; //tcp连接认证
 
     public static $outProtocol = true; //是否输出协议标识
     public static $log = false;
@@ -37,7 +38,11 @@ class JsonRpcService
         self::load(GetC('rpc_load', []));
     }
 
-    // 循环load配置文件或匿名函数 ['file1','file2',...,function(){},...] || function(){};
+    /**
+     * 循环load配置文件或匿名函数 ['file1','file2',...,function(){},...] || function(){};
+     * @param array|string|\Closure $rpc_load
+     * @return void
+     */
     public static function load($rpc_load)
     {
         foreach ((array)$rpc_load as $load) {
@@ -53,20 +58,20 @@ class JsonRpcService
         }
     }
 
-    public static function checkAllow($c, $a)
+    public static function checkAllow(string $c, string $a): bool
     {
         return !in_array($c, self::$allow) && !in_array($c . '/' . $a, self::$allow);
     }
 
-    private static function _error($code, $message, $id = null)
+    private static function _error(int $code, string $message, $id = null): array
     {
         if (self::$outProtocol) {
-            ['jsonrpc' => '2.0', 'error' => ['code' => $code, 'message' => $message], 'id' => $id];
+            return ['jsonrpc' => '2.0', 'error' => ['code' => $code, 'message' => $message], 'id' => $id];
         }
         return ['error' => ['code' => $code, 'message' => $message], 'id' => $id];
     }
 
-    private static function _result(&$result, $id)
+    private static function _result(&$result, $id): array
     {
         if (self::$outProtocol) {
             return ['jsonrpc' => '2.0', 'result' => $result, 'id' => $id];
@@ -74,7 +79,7 @@ class JsonRpcService
         return ['result' => $result, 'id' => $id];
     }
 
-    public static function run($json, $con = null, $fd = 0)
+    public static function run(string $json, $con = null, int $fd = 0): ?array
     {
         if (self::$log) {
             Log::write($json, 'req');
@@ -126,7 +131,7 @@ class JsonRpcService
         return $result;
     }
 
-    public static function handle(&$request)
+    public static function handle(array &$request): ?array
     {
         if (empty($request['method']) || !is_string($request['method'])) {
             return self::_error(-32601, 'Method not found');
@@ -146,7 +151,7 @@ class JsonRpcService
         return null;
     }
 
-    public static function url(&$request)
+    public static function url(array &$request)
     {
         $_env = \myphp::$env;
         #$_SERVER['SCRIPT_NAME'] = '/index.php';
@@ -197,7 +202,7 @@ class JsonRpcService
         }
     }
 
-    public static function call(&$request)
+    public static function call(array &$request)
     {
         $request['params'] = isset($request['params']) ? (array)$request['params'] : [];
         if ($request['method'] == '->') { //连贯操作
@@ -269,10 +274,10 @@ class JsonRpcService
     /**
      * 参数递归处理
      * @param array $params
-     * @return mixed
+     * @return array
      * @throws \Exception
      */
-    public static function paramsRecursive($params)
+    public static function paramsRecursive(array $params): array
     {
         if (!$params) {
             return $params;
@@ -284,7 +289,7 @@ class JsonRpcService
                     continue;
                 }
                 if (substr($name, 0, 1) == '@') { //调用函数处理
-                    //todo 使用直接调用方式流程
+                    //使用直接调用方式流程
                     $request = ['method' => substr($name, 1), 'params' => self::paramsRecursive($param[$name])];
                     $params[$key] = self::call($request);
                     #$params[$key] = call_user_func_array(substr($name, 1), self::paramsRecursive($param[$name]));
@@ -303,7 +308,7 @@ class JsonRpcService
         return $con->getClientInfo($fd)['remote_ip'];
     }
 
-    public static function authHttp()
+    public static function authHttp(): bool
     {
         //优先ip
         if (static::$allowIp) {
@@ -322,7 +327,7 @@ class JsonRpcService
      * @param string|null $recv
      * @return bool|null
      */
-    public static function auth($con, $fd, ?string $recv = '')
+    public static function auth($con, int $fd, ?string $recv = ''): ?bool
     {
         //优先ip
         if (static::$allowIp) {
@@ -333,24 +338,20 @@ class JsonRpcService
             return true;
         }
 
-        if (!isset(\SrvBase::$instance->auth)) {
-            \SrvBase::$instance->auth = [];
-        }
-
         //连接断开清除
         if ($recv === null) {
-            unset(\SrvBase::$instance->auth[$fd]);
+            unset(self::$auth[$fd]);
             \SrvBase::$isConsole && \SrvBase::safeEcho('clear auth '.$fd);
             return true;
         }
 
         if ($recv) {
-            if (isset(\SrvBase::$instance->auth[$fd]) && \SrvBase::$instance->auth[$fd] === true) {
+            if (isset(self::$auth[$fd]) && self::$auth[$fd] === true) {
                 return true;
             }
-            \SrvBase::$instance->server->clearTimer(\SrvBase::$instance->auth[$fd]);
+            \SrvBase::$instance->server->clearTimer(self::$auth[$fd]);
             if ($recv == static::$authKey) { //通过认证
-                \SrvBase::$instance->auth[$fd] = true;
+                self::$auth[$fd] = true;
             } else {
                 $errJson = \json_encode(self::_error(-32403, 'auth fail'));
                 return static::err($errJson);
@@ -359,10 +360,10 @@ class JsonRpcService
         }
 
         //创建定时认证
-        if (!isset(\SrvBase::$instance->auth[$fd])) {
+        if (!isset(self::$auth[$fd])) {
             \SrvBase::$isConsole && \SrvBase::safeEcho('auth timer ' . $fd . PHP_EOL);
-            \SrvBase::$instance->auth[$fd] = \SrvBase::$instance->server->after(1000, function () use ($con, $fd) {
-                unset(\SrvBase::$instance->auth[$fd]);
+            self::$auth[$fd] = \SrvBase::$instance->server->after(1000, function () use ($con, $fd) {
+                unset(self::$auth[$fd]);
                 \SrvBase::$isConsole && \SrvBase::safeEcho('auth timeout to close ' . $fd . PHP_EOL);
                 if (\SrvBase::$instance->isWorkerMan) {
                     $con->close();
@@ -376,9 +377,9 @@ class JsonRpcService
     /**
      * @param \Workerman\Connection\TcpConnection|\Swoole\Server $con
      * @param int $fd
-     * @param string $msg
+     * @param string|null $msg
      */
-    public static function toClose($con, $fd = 0, $msg = null)
+    public static function toClose($con, int $fd = 0, ?string $msg = null)
     {
         if (\SrvBase::$instance->isWorkerMan) {
             $con->close($msg);
