@@ -156,6 +156,7 @@ class JsonRpcService
     public static function url(array &$request)
     {
         $_env = \myphp::$env;
+        \myphp::$env = []; //重置防止数据污染
         #$_SERVER['SCRIPT_NAME'] = '/index.php';
         $_SERVER['PHP_SELF'] = (string)\parse_url($request['method'], PHP_URL_PATH);
         $_SERVER["REQUEST_URI"] = $request['method'];
