@@ -156,7 +156,7 @@ class JsonRpcService
         try {
             $result = $request['method'][0] == '/' ? self::url($request) : self::call($request);
         } catch (\Exception|\Error $e) {
-            return self::error(-32603, $e->getCode() . ':' . $e->getMessage() . ', line:' . $e->getLine(), $request['id'] ?? null);
+            return self::error(-32603, $e->getMessage() . ', line:' . $e->getLine(), $request['id'] ?? null);
         }
 
         if (isset($request['id'])) {
@@ -298,7 +298,7 @@ class JsonRpcService
             return $params;
         }
         foreach ($params as $key => $param) {
-            if (is_array($param)) {
+            if (is_array($param) && !empty($param)) {
                 $name = key($param);
                 if (is_int($name)) {
                     continue;
