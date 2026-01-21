@@ -162,11 +162,22 @@ class JsonRpcClient
     }
 
     /**
+     * 连贯操作(直接指定调用函数、方法、静态方法)
+     * @param string $name
+     * @param mixed ...$params
+     * @return $this
+     */
+    public function fluent(string $name, ...$params): JsonRpcClient
+    {
+        $this->_fluent[] = [$name => $params];
+        return $this;
+    }
+
+    /**
      * 连贯操作
      * @param string $name
      * @param array $params
-     * @return array|bool|mixed|null
-     * @throws \Exception
+     * @return $this
      */
     public function __call(string $name, array $params)
     {
@@ -251,7 +262,7 @@ class JsonRpcClient
 
     /**
      * 批量处理 同 ->multi(), ..., ->exec()
-     * @param array $methods [[name,params, notify], ...]
+     * @param array $methods [[name,params], ...]
      * @return array|bool|mixed|null
      * @throws \Exception
      */

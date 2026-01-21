@@ -155,10 +155,8 @@ class JsonRpcService
 
         try {
             $result = $request['method'][0] == '/' ? self::url($request) : self::call($request);
-        } catch (\Exception $e) {
-            return self::error($e->getCode() ?: -32603, $e->getMessage(), $request['id'] ?? null);
-        } catch (\Error $e) {
-            return self::error(-32603, 'Internal error: ' . $e->getMessage(), $request['id'] ?? null);
+        } catch (\Exception|\Error $e) {
+            return self::error(-32603, $e->getCode() . ':' . $e->getMessage(), $request['id'] ?? null);
         }
 
         if (isset($request['id'])) {
