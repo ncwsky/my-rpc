@@ -67,15 +67,16 @@ class JsonRpcService
      * 失败返回
      * @param int $code
      * @param string $message
-     * @param $id
+     * @param null $id
+     * @param null $data
      * @return array
      */
-    public static function error(int $code, string $message, $id = null): array
+    public static function error(int $code, string $message, $id = null, $data = null): array
     {
         if (self::$outProtocol) {
-            return ['jsonrpc' => '2.0', 'error' => ['code' => $code, 'message' => $message], 'id' => $id];
+            return ['jsonrpc' => '2.0', 'error' => ['code' => $code, 'message' => $message, 'data' => $data], 'id' => $id];
         }
-        return ['error' => ['code' => $code, 'message' => $message], 'id' => $id];
+        return ['error' => ['code' => $code, 'message' => $message, 'data' => $data], 'id' => $id];
     }
 
     /**

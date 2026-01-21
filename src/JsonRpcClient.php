@@ -11,8 +11,6 @@ use myphp\Log;
  */
 class JsonRpcClient
 {
-    use \MyMsg;
-
     public $maxPackageSize = 16777215; //16M
 
     public static $id = 0;
@@ -24,6 +22,14 @@ class JsonRpcClient
     private $_http = false;
 
     /**
+     * @var int 错误码
+     */
+    private $code = 0;
+    /**
+     * @var string 错误信息
+     */
+    private $message = '';
+    /**
      * @var string 授权key 如果服务端有配置IP验证时此key无效
      */
     public $auth_key;
@@ -31,6 +37,11 @@ class JsonRpcClient
      * @var array http请求时使用 [name=>value, ...]
      */
     public $header = [];
+
+    /**
+     * @var callable|null 调用后执行 传入结果参数
+     */
+    public $call_after = null;
 
     /**
      * @var float 连接超时 未设置使用: `ini_get("default_socket_timeout")`.
@@ -340,7 +351,8 @@ class JsonRpcClient
                         $this->open();
                         $this->retries = $retries;
                     } else {
-                        throw new \Exception($e->getMessage());
+                        return $this->error(-32603, $e->getMessage(), $json['id'] ?? null);
+                        //throw new \Exception($e->getMessage());
                     }
                 }
             }
@@ -357,6 +369,8 @@ class JsonRpcClient
      */
     private function sendCommandInternal(array &$json, bool $multi = false)
     {
+        $this->code = 0;
+        $this->message = '';
         if ($this->_http) {
             $header = array_merge([
                 'Authorization' => $this->auth_key,
@@ -364,48 +378,63 @@ class JsonRpcClient
             ], $this->header);
             $data = \Http::curlSend($this->_address, 'POST', toJson($json), (int)$this->timeout, $header);
             if ($data === false) {
-                return self::errNil(\Http::$curlErr ?: '请求失败');
+                return $this->error(-32001, \Http::$curlErr ?: '请求失败', $json['id'] ?? null);
             }
-            return \json_decode($data, true);
+        } else {
+            $command = toJson($json)."\n";
+            $written = @fwrite($this->_socket, $command);
+            if ($written === false) {
+                return $this->error(-32001, "Failed to read to write.\nRpc command was: " . $command, $json['id'] ?? null);
+            }
+            if (!$multi && !isset($json['id'])) { //是通知
+                return null;
+            }
+            if (($data = fgets($this->_socket, $this->maxPackageSize)) === false) {
+                return $this->error(-32002, "Failed to read to socket.\nRpc command was: " . $command, $json['id'] ?? null);
+            }
         }
-
-        $command = toJson($json)."\n";
-        $written = @fwrite($this->_socket, $command);
-        if ($written === false) {
-            throw new \Exception("Failed to write to socket.\nRpc command was: " . $command, 100);
-        }/*
-        if ($written !== ($len = strlen($command))) {
-            throw new \Exception("Failed to write to socket. $written of $len bytes written.\nRpc command was: " . $command, 100);
-        }*/
-        if (!$multi && !isset($json['id'])) { //是通知
-            return null;
-        }
-        if (($data = fgets($this->_socket, $this->maxPackageSize)) === false) {
-            throw new \Exception("Failed to read from socket.\nRpc command was: " . toJson($json));
-        }
-        $jsonRet = \json_decode($data, true);
-        if (isset($jsonRet['error']) && $jsonRet['error']['code'] == -32403) {
+        $jsonRet = \json_decode($data, true); //-32403 没有权限
+        /*if (isset($jsonRet['error']) && $jsonRet['error']['code'] == -32403) {
             throw new \Exception(rtrim($data));
+        }*/
+        if (isset($jsonRet['error'])) {
+            $this->code = $jsonRet['error']['code'];
+            $this->message = $jsonRet['error']['message'];
+        }
+        // 调用后执行
+        if ($this->call_after) {
+            return call_user_func($this->call_after, $jsonRet);
         }
         return $jsonRet;
         /*
-        $ret = \json_decode($data, true);
-        if (isset($ret[0])) { //批量
-            return $ret;
+        if (isset($jsonRet[0])) { //批量
+            return $jsonRet;
         }
-        if (isset($ret['jsonrpc'])) {
-            if (!empty($ret['error'])) {
-                //兼容处理
-                $ret['msg'] = $ret['message'];
-                if (!isset($ret['data'])) {
-                    $ret['data'] = null;
-                }
-                return $ret['error']; // {code,message,data}
-            } else {
-                return $ret['result']; // mixed|{code:int,msg:string,data:mixed}
+        if (!empty($jsonRet['error'])) {
+            $jsonRet['error']['msg'] = $jsonRet['error']['message']; //兼容处理
+            if (!isset($jsonRet['error']['data'])) {
+                $jsonRet['error']['data'] = null;
             }
-        } else { //{code:int,msg:string,data:mixed}
-            return $ret;
+            return $jsonRet['error']; // {code,message,data}
+        } else {
+            return $jsonRet?$jsonRet['result']:null; // mixed|{code:int,msg:string,data:mixed}
         }*/
+    }
+
+    private function error(int $code, string $message, $id = null, $data = null): array
+    {
+        $this->code = $code;
+        $this->message = $message;
+        return ['jsonrpc' => '2.0', 'error' => ['code' => $code, 'message' => $message, 'data' => $data], 'id' => $id];
+    }
+
+    public function getCode(): int
+    {
+        return $this->code;
+    }
+
+    public function getMessage(): string
+    {
+        return $this->message;
     }
 }

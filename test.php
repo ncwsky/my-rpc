@@ -30,7 +30,7 @@ eJson($jsonRpc->multi());
 eJson($jsonRpc->call('orderSN', 3, 2));
 eJson($jsonRpc->callRaw('\common\weixin\RedisQRCode.create', [100, ['key' => bin2hex(random_bytes(6))]]));
 eJson($jsonRpc->exec());
-$ret = $jsonRpc->call('base64_encode', $jsonRpc->sub('\myphp\Helper::rc4', $jsonRpc->sub('urlencode', $jsonRpc->sub('toJson', ['我是外星人'])), '123456'));
+$ret = $jsonRpc->call('base64_encode', $jsonRpc->sub('\myphp\Helper::rc4', $jsonRpc->sub('urlencode', $jsonRpc->sub('toJson', ['我是外星人'])), '123456')); // base64_encode(\myphp\Helper::rc4(urlencode(toJson(['我是外星人'])), '123456'))
 eJson($ret);
 
 $ret = $jsonRpc->call('json_decode', $jsonRpc->sub('urldecode', $jsonRpc->sub('\myphp\Helper::rc4', $jsonRpc->sub('base64_decode', $ret['result']), '123456')));
