@@ -181,7 +181,7 @@ class JsonRpcService
         if (isset($request['params']) && $request['params']) { //对http请求post|post raw兼容处理
             if (is_array($request['params'])) {
                 $_POST = $request['params'];
-                Log::write($_POST, 'post');
+                self::$log && Log::write($_POST, 'post');
             } elseif (is_string($request['params'])) {
                 \myphp::req()->setRawBody($request['params']);
                 $chr = $request['params'][0]; //取第一个字符用于简单判断是否为json
