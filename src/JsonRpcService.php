@@ -156,7 +156,7 @@ class JsonRpcService
         try {
             $result = $request['method'][0] == '/' ? self::url($request) : self::call($request);
         } catch (\Exception|\Error $e) {
-            return self::error(-32603, $e->getCode() . ':' . $e->getMessage(), $request['id'] ?? null);
+            return self::error(-32603, $e->getCode() . ':' . $e->getMessage() . ', line:' . $e->getLine(), $request['id'] ?? null);
         }
 
         if (isset($request['id'])) {
@@ -260,10 +260,10 @@ class JsonRpcService
             //对新实例缓存
             if (!isset(self::$instances[$key])) {
                 if (!class_exists($className)) {
-                    throw new \Exception('Class not found', -32601);
+                    throw new \Exception($className . ' not found', -32601);
                 }
                 if (!method_exists($className, $method)) {
-                    throw new \Exception('Method not found', -32601);
+                    throw new \Exception($className . ':' . $method . ' not found', -32601);
                 }
                 self::$instances[$key] = new $className();
             }
@@ -271,15 +271,15 @@ class JsonRpcService
         } elseif (strpos($request['method'], '::')) {//对象::静态方法
             [$className, $method] = explode('::', $request['method'], 2);
             if (!class_exists($className)) {
-                throw new \Exception('Class not found', -32601);
+                throw new \Exception($className . ' not found', -32601);
             }
             if (!method_exists($className, $method)) {
-                throw new \Exception('Method not found', -32601);
+                throw new \Exception($className . ':' . $method . ' Method not found', -32601);
             }
             $result = call_user_func_array($request['method'], self::paramsRecursive($request['params']));
         } else { //普通函数
             if (!function_exists($request['method'])) {
-                throw new \Exception('Method not found', -32601);
+                throw new \Exception($request['method'] . ' not found', -32601);
             }
             $result = call_user_func_array($request['method'], self::paramsRecursive($request['params']));
         }
@@ -335,6 +335,7 @@ class JsonRpcService
         }
         return static::$authKey == \myphp::req()->getHeader('Authorization');
     }
+
     /**
      * tcp 认证
      * @param \Workerman\Connection\TcpConnection|\Swoole\Server $con
@@ -356,7 +357,7 @@ class JsonRpcService
         //连接断开清除
         if ($recv === null) {
             unset(self::$auth[$fd]);
-            \SrvBase::$isConsole && \SrvBase::safeEcho('clear auth '.$fd);
+            \SrvBase::$isConsole && \SrvBase::safeEcho('clear auth ' . $fd);
             return true;
         }
 
@@ -389,6 +390,7 @@ class JsonRpcService
         }
         return true;
     }
+
     /**
      * @param \Workerman\Connection\TcpConnection|\Swoole\Server $con
      * @param int $fd
